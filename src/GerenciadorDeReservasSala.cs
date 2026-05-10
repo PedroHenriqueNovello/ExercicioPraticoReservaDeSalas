@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ReservaDeSalas
 {
     public class GerenciadorDeReservasSala
@@ -5,6 +7,7 @@ namespace ReservaDeSalas
         private GerenciadorDeReservasSala() { }
         private static GerenciadorDeReservasSala instance;
         private static readonly object _trava = new object();
+        private List<Reserva> _reservas = new List<Reserva>();
 
         public static GerenciadorDeReservasSala getInstance()
         {
@@ -14,5 +17,7 @@ namespace ReservaDeSalas
                 return instance;
             }
         }
+        public void AdicionarReserva(Reserva r) => _reservas.Add(r);
+        public List<Reserva> GetReservas() => _reservas;
     }
 }
