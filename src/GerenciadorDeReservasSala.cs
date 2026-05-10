@@ -2,13 +2,17 @@ namespace ReservaDeSalas
 {
     public class GerenciadorDeReservasSala
     {
-        private static GerenciadorDeReservasSala instance;
         private GerenciadorDeReservasSala() { }
+        private static GerenciadorDeReservasSala instance;
+        private static readonly object _trava = new object();
 
         public static GerenciadorDeReservasSala getInstance()
         {
-            if (instance == null) instance = new GerenciadorDeReservasSala();
-            return instance;
+            lock (_trava)
+            {
+                if (instance == null) instance = new GerenciadorDeReservasSala();
+                return instance;
+            }
         }
     }
 }
