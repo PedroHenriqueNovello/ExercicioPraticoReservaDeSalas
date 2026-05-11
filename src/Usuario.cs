@@ -10,7 +10,8 @@ namespace ReservaDeSalas
 
         public void Update(ISubject subject, Reserva reserva)
         {
-            Console.WriteLine($"Processando atualização para o usuário: {Nome}");
+            // PUSH
+            Console.WriteLine($"{Nome}: A reserva '{reserva.Id}' na sala tipo '{reserva.Sala.GetTipo()}' foi atualizada.");
         }
     }
 }
