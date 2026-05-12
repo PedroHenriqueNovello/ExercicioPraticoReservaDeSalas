@@ -5,6 +5,7 @@ namespace ReservaDeSalas
     public class Usuario : IObserver
     {
         public string Nome { get; private set; }
+        public bool IsDocente { get; set; }
 
         public Usuario(string nome) => Nome = nome;
 
