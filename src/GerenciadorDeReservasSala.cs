@@ -34,7 +34,19 @@ namespace ReservaDeSalas
         
         public int GetTotalReservasAtivas() => _reservas.Count;
 
-        public void AdicionarReserva(Reserva r) => _reservas.Add(r);
+        public void AdicionarReserva(Reserva r) 
+        {
+            _reservas.Add(r);
+            NotifyObservers(r);
+        }
+        public void CancelarReserva(Reserva r)
+        {
+            if (_reservas.Remove(r))
+            {
+                r.Detalhes = "CANCELADA";
+                NotifyObservers(r);
+            }
+        }
         public List<Reserva> GetReservas() => _reservas;
     }
 }

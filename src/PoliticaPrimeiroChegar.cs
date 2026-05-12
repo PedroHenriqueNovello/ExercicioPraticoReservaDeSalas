@@ -6,7 +6,7 @@ namespace ReservaDeSalas
     {
         public bool AprovarReserva(Reserva nova, List<Reserva> reservasExistentes)
         {
-            foreach (var r in existentes)
+            foreach (var r in reservasExistentes)
             {
                 if (r.Sala.Id == nova.Sala.Id && nova.Inicio < r.Fim && nova.Fim > r.Inicio)
                 {
