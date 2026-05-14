@@ -34,7 +34,8 @@ namespace ReservaDeSalas
                 Console.WriteLine("2. Listar Reservas Atuais");
                 Console.WriteLine("3. Cancelar Reserva");
                 Console.WriteLine("4. Alterar Política de Reserva");
-                Console.WriteLine("5. Sair");
+                Console.WriteLine("5. Emitir Relatório Diário");
+                Console.WriteLine("6. Sair");
                 Console.Write("\nEscolha uma opção: ");
 
                 string opcao = Console.ReadLine();
@@ -54,6 +55,9 @@ namespace ReservaDeSalas
                         AlterarPolitica(ref politica);
                         break;
                     case "5":
+                        EmitirRelatorioDiario(gerenciador);
+                        break;
+                    case "6":
                         Console.WriteLine("Encerrando o sistema...");
                         return;
                     default:
@@ -89,6 +93,14 @@ namespace ReservaDeSalas
                     return;
                 }
                 Sala salaEscolhida = salas[salaIdx - 1];
+
+                Console.Write("Data da Reserva (DD/MM/AAAA): ");
+                if (!DateTime.TryParse(Console.ReadLine(), out DateTime dataReserva))
+                {
+                    Console.WriteLine("Data inválida! Pressione qualquer tecla para voltar ao menu...");
+                    Console.ReadKey();
+                    return;
+                }
 
                 Console.Write("Horário de Início (HH:mm): ");
                 if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan inicio))
@@ -185,8 +197,8 @@ namespace ReservaDeSalas
                     {
                         string tipoUsuario = r.Usuario.IsDocente ? "Docente" : "Aluno";
                         Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario})");
-                        Console.WriteLine($"Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
-                        Console.WriteLine($"Detalhes: {r.GetDescricao()}");
+                        Console.WriteLine($"   Data: {r.Inicio:dd/MM/yyyy} | Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
+                        Console.WriteLine($"   Detalhes: {r.GetDescricao()}");
                         Console.WriteLine("-----------------------------------");
                     }
                 }
@@ -251,6 +263,41 @@ namespace ReservaDeSalas
                 Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
                 Console.ReadKey();
                 return politica;
+            }
+
+            static void EmitirRelatorioDiario(GerenciadorDeReservasSala gerenciador)
+            {
+                Console.Clear();
+                Console.WriteLine("--- RELATÓRIO DIÁRIO DE RESERVAS ---");
+                Console.Write("Informe a data para o relatório (DD/MM/AAAA): ");
+                if (!DateTime.TryParse(Console.ReadLine(), out DateTime dataRelatorio))
+                {
+                    Console.WriteLine("Data inválida! Pressione qualquer tecla para voltar ao menu...");
+                    Console.ReadKey();
+                    return;
+                }
+                var reservasDoDia = gerenciador.GetReservas().Where(r => r.Inicio.Date == dataRelatorio.Date).ToList();
+                Console.WriteLine($"\nReservas para {dataRelatorio:dd/MM/yyyy}:");
+                Console.WriteLine("-----------------------------------");
+                if (reservasDoDia.Count == 0)
+                {
+                    Console.WriteLine("Nenhuma reserva para esta data.");
+                }
+                else
+                {
+                    foreach (var r in reservasDoDia)
+                    {
+                        string tipoUsuario = r.Usuario.IsDocente ? "Docente" : "Aluno";
+                        Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario})");
+                        Console.WriteLine($"   Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
+                        Console.WriteLine($"   Detalhes: {r.GetDescricao()}");
+                        Console.WriteLine("-----------------------------------");
+                    }
+                }
+                Console.WriteLine("---------------------------------");
+                Console.WriteLine("Total de Reservas: " + reservasDoDia.Count);
+                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
+                Console.ReadKey();
             }
         }
     }
