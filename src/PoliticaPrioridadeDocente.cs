@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ReservaDeSalas
 {
@@ -6,13 +7,19 @@ namespace ReservaDeSalas
     {
         public bool AprovarReserva(Reserva nova, List<Reserva> reservasExistentes)
         {
-            //se for docente, ignora a colisão e aprova a reserva da sala, sobrescrevendo a reserva do aluno
             if (nova.Usuario != null && nova.Usuario.IsDocente)
             {
+                var conflitos = reservasExistentes.Where(r => r.Sala.Id == nova.Sala.Id &&nova.Inicio < r.Fim &&nova.Fim > r.Inicio && !r.Usuario.IsDocente).ToList();
+
+                foreach (var reservaConflitante in conflitos)
+                {
+                    reservasExistentes.Remove(reservaConflitante);
+                    reservaConflitante.Detalhes = $"CANCELADA POR PRIORIDADE DOCENTE (Reserva {nova.Id})";
+                }
+
                 return true;
             }
 
-            //se for aluno, aplica a regra normal de não colisão
             foreach (var r in reservasExistentes)
             {
                 if (r.Sala.Id == nova.Sala.Id && nova.Inicio < r.Fim && nova.Fim > r.Inicio)
