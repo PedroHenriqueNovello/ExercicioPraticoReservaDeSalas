@@ -79,7 +79,7 @@ namespace ReservaDeSalas
                 Console.WriteLine("\nSalas Disponíveis:");
                 for (int i = 0; i < salas.Count; i++)
                 {
-                    Console.WriteLine($"{i + 1}. {salas[i].Id} ({salas[i].Tipo})");
+                    Console.WriteLine($"{i + 1}. {salas[i].Id} ({salas[i].GetTipo()})");
                 }
                 Console.Write("\nEscolha a sala (número): ");
                 if (!int.TryParse(Console.ReadLine(), out int salaIdx) || salaIdx < 1 || salaIdx > salas.Count)
@@ -106,21 +106,60 @@ namespace ReservaDeSalas
                     return;
                 }
 
+                DateTime inicioReserva = DateTime.Today.Add(inicio);
+                DateTime fimReserva = DateTime.Today.Add(fim);
+
                 Reserva novaReserva = new Reserva
                 {
-                    Id = $"RES-{DateTime.Now.Ticks}",
+                    Id = $"RES-" + Guid.NewGuid().ToString().Substring(0, 4).ToUpper(),
                     Sala = salaEscolhida,
                     Usuario = usuario,
-                    Inicio = DateTime.Today.Add(inicio),
-                    Fim = DateTime.Today.Add(fim),
+                    Inicio = inicioReserva,
+                    Fim = fimReserva,
                     Detalhes = "Reserva criada via terminal"
                 };
+
+                while (true)
+                {
+                    Console.Write("\nDeseja adicionar extras? (s/n): ");
+                    string resposta = Console.ReadLine().Trim().ToLower();
+                    if (resposta == "s")
+                    {
+                        Console.WriteLine("1. Equipamento Multimídia");
+                        Console.WriteLine("2. Serviço de Limpeza");
+                        Console.Write("Escolha (número): ");
+                        string extra = Console.ReadLine();
+                        switch (extra)
+                        {
+                            case "1":
+                                novaReserva = new EquipamentoMultimidiaDecorator(novaReserva);
+                                break;
+                            case "2":
+                                novaReserva = new ServicoDeLimpezaDecorator(novaReserva);
+                                break;
+                            default:
+                                Console.WriteLine("Opção inválida! Pressione qualquer tecla para tentar novamente...");
+                                Console.ReadKey();
+                                continue;
+                        }
+                    }
+                    else if (resposta == "n")
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Resposta inválida! Pressione qualquer tecla para tentar novamente...");
+                        Console.ReadKey();
+                    }
+                }
 
                 Console.WriteLine("\n[SISTEMA] Tentando processar a reserva...\n");
                 if (politica.AprovarReserva(novaReserva, gerenciador.GetReservas()))
                 {
                     gerenciador.AdicionarReserva(novaReserva);
                     Console.WriteLine("[SUCESSO] Reserva aprovada e adicionada com sucesso!");
+                    Console.WriteLine($"Descrição: {novaReserva.GetDescricao()}");
                 }
                 else
                 {
@@ -145,7 +184,10 @@ namespace ReservaDeSalas
                     foreach (var r in reservas)
                     {
                         string tipoUsuario = r.Usuario.IsDocente ? "Docente" : "Aluno";
-                        Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario}) | Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm} | Detalhes: {r.Detalhes}");
+                        Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario})");
+                        Console.WriteLine($"Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
+                        Console.WriteLine($"Detalhes: {r.GetDescricao()}");
+                        Console.WriteLine("-----------------------------------");
                     }
                 }
                 Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
@@ -194,20 +236,16 @@ namespace ReservaDeSalas
                 Console.Write("\nEscolha a nova política (número): ");
                 string opcao = Console.ReadLine();
 
-                switch (opcao)
+                string opt = Console.ReadLine();
+                if (opt == "2")
                 {
-                    case "1":
-                        politica = new PoliticaPrimeiroChegar();
-                        Console.WriteLine("Política alterada para: Primeiro a Chegar");
-                        break;
-                    case "2":
-                        politica = new PoliticaPrioridadeDocente();
-                        Console.WriteLine("Política alterada para: Prioridade Docentes");
-                        break;
-                    default:
-                        Console.WriteLine("Opção inválida! Pressione qualquer tecla para voltar ao menu...");
-                        Console.ReadKey();
-                        return;
+                    politica = new PoliticaPrioridadeDocente();
+                    Console.WriteLine("Política alterada para: Prioridade Docentes");
+                }
+                else
+                {
+                    politica = new PoliticaPrimeiroChegar();
+                    Console.WriteLine("Política alterada para: Primeiro a Chegar");
                 }
 
                 Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
