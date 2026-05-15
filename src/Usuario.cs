@@ -2,6 +2,8 @@ using System;
 
 namespace ReservaDeSalas
 {
+    public enum NivelAcesso { Aluno, Docente, Admin }
+
     public class Usuario : IObserver
     {
         public string Nome { get; private set; }
