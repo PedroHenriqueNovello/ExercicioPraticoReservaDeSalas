@@ -12,7 +12,18 @@ namespace ReservaDeSalas
             _gerenciadorReal = gerenciadorReal;
         }
 
-        public virtual void AdicionarReserva(Reserva r) => _gerenciadorReal.AdicionarReserva(r);
+        public virtual void AdicionarReserva(Reserva r)
+        {
+            if (r.Usuario.Nivel == NivelAcesso.Admin || r.Usuario.Nivel == NivelAcesso.Docente || r.Usuario.Nivel == NivelAcesso.Aluno)
+            {
+                Console.WriteLine($"[PROXY] Acesso autorizado para adição.");
+                _gerenciadorReal.AdicionarReserva(r);
+            }
+            else
+            {
+                Console.WriteLine($"[PROXY] Acesso negado para adição.");
+            }
+        }
         public virtual void CancelarReserva(Reserva r) => _gerenciadorReal.CancelarReserva(r);
         public virtual List<Reserva> GetReservas() => _gerenciadorReal.GetReservas();
         public int GetTotalReservasAtivas() => _gerenciadorReal.GetTotalReservasAtivas();
