@@ -22,6 +22,7 @@ namespace ReservaDeSalas
             {
                 Console.WriteLine($"[PROXY] Acesso autorizado para adição.");
                 _gerenciadorReal.AdicionarReserva(r);
+                InvalidarCache();
             }
             else
             {
@@ -34,6 +35,7 @@ namespace ReservaDeSalas
             {
                 Console.WriteLine($"[PROXY] Acesso autorizado para cancelamento.");
                 _gerenciadorReal.CancelarReserva(r);
+                InvalidarCache();
             }
             else
             {
@@ -51,6 +53,12 @@ namespace ReservaDeSalas
             _cacheReservas = _gerenciadorReal.GetReservas();
             _cacheExpiracao = DateTime.Now.AddSeconds(10);
             return _cacheReservas;
+        }
+
+        private void InvalidarCache()
+        {
+            _cacheReservas = null;
+            _cacheExpiracao = DateTime.MinValue;
         }
         public int GetTotalReservasAtivas() => _gerenciadorReal.GetTotalReservasAtivas();
         public void AddObserver(IObserver observer) => _gerenciadorReal.AddObserver(observer);
