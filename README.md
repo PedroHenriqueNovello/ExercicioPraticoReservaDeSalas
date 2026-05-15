@@ -17,6 +17,25 @@ Este projeto implementa um sistema de reserva de salas utilizando C# e diversos 
 - **Cache de Reservas (Proxy):** Otimização de desempenho para listagem de reservas, com cache de 10 segundos.
 - **Relatórios:** Geração de relatório diário de reservas.
 - **Interface de Linha de Comando (CLI):** Menu interativo para interação com o sistema.
+# Sistema de Reserva de Salas
+
+Este projeto implementa um sistema de reserva de salas utilizando C# e diversos padrões de projeto para garantir modularidade, extensibilidade e um controle de acesso robusto.
+
+## Funcionalidades
+
+- **Reserva de Salas:** Permite que usuários reservem diferentes tipos de salas (Estudo Individual, Trabalho em Grupo, Laboratório).
+- **Políticas de Reserva:** Suporta diferentes políticas para aprovação de reservas (e.g., Primeiro a Chegar, Prioridade para Docentes).
+- **Autenticação e Autorização:** Sistema de login e registro de usuários com diferentes níveis de acesso (Aluno, Docente, Admin).
+- **Persistência de Usuários:** Dados dos usuários são salvos em um arquivo JSON (`usuarios.json`).
+- **Controle de Acesso Refinado (Proxy):**
+    - **Alunos:** Podem reservar apenas salas de Estudo Individual e Trabalho em Grupo. Não podem cancelar reservas de outros usuários.
+    - **Docentes:** Podem reservar qualquer tipo de sala. Não podem cancelar reservas de outros usuários.
+    - **Administradores:** Podem reservar qualquer tipo de sala e cancelar qualquer reserva.
+- **Notificações:** Usuários são notificados sobre o status de suas reservas (via padrão Observer).
+- **Extras de Reserva (Decorator):** Possibilidade de adicionar equipamentos multimídia ou serviço de limpeza a uma reserva.
+- **Cache de Reservas (Proxy):** Otimização de desempenho para listagem de reservas, com cache de 10 segundos.
+- **Relatórios:** Geração de relatório diário de reservas.
+- **Interface de Linha de Comando (CLI):** Menu interativo para interação com o sistema.
 
 ## Padrões de Projeto Utilizados
 
@@ -31,13 +50,13 @@ Este projeto implementa um sistema de reserva de salas utilizando C# e diversos 
 
 ### Pré-requisitos
 
-- .NET SDK 6.0 ou superior.
+- .NET SDK 9.0 ou superior.
 
 ### Como Executar
 
 1. **Navegue até o diretório do projeto:**
    ```bash
-   cd ../projeto_reserva/ExercicioPraticoReservaDeSalas2
+   cd ../ExercicioPraticoReservaDeSalas2
    ```
 2. **Compile o projeto:**
    ```bash
@@ -99,3 +118,8 @@ ExercicioPraticoReservaDeSalas2/
 - **Testes Unitários:** Adicionar testes unitários para as classes de lógica de negócio e padrões de projeto.
 - **Notificações Assíncronas:** Implementar um sistema de notificação mais robusto, talvez com filas de mensagens ou eventos.
 - **Gerenciamento de Salas:** Adicionar funcionalidades para criar, editar e remover salas dinamicamente.
+
+### Autores
+- Letícia Abraão Moreira
+- Pedro Henrique Novello D'Elia Porto de Almeida
+- Enrico Manzolli Bertoni (Extensão)
