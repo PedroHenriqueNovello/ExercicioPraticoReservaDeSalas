@@ -10,6 +10,22 @@ namespace ReservaDeSalas
         {
             IGerenciadorDeReservas gerenciadorReal = GerenciadorDeReservasSala.getInstance();
             IGerenciadorDeReservas gerenciador = new GerenciadorDeReservasSalaProxy(gerenciadorReal);
+
+            //Teste1
+            Console.WriteLine("=== TESTES AUTOMÁTICOS DO PROXY ===");
+            Console.WriteLine("\n[TESTE CACHE] Primeira consulta:");
+            gerenciador.GetReservas();
+            Console.WriteLine("[TESTE CACHE] Segunda consulta (deve vir do cache):");
+            gerenciador.GetReservas();
+
+            //Teste2
+            Usuario alunoTeste = new Usuario("Letícia") { Nivel = NivelAcesso.Aluno };
+            Reserva reservaTeste = new Reserva { Id = "T-01", Usuario = alunoTeste };
+            Console.WriteLine("\n[TESTE SEGURANÇA] Cancelando como Aluno (deve ser negado):");
+            gerenciador.CancelarReserva(reservaTeste);
+
+            Console.WriteLine("\n=== FIM DOS TESTES - PRESSIONE QUALQUER TECLA PARA O MENU ===");
+            Console.ReadKey();
         
             SalaFactory fabricaIndividual = new SalaIndividualFactory();
             SalaFactory fabricaGrupo = new SalaGrupoFactory();
