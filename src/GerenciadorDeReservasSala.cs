@@ -29,6 +29,11 @@ namespace ReservaDeSalas
         public void NotifyObservers(Reserva reserva)
         {
             foreach (var obs in _observers) obs.Update(this, reserva);
+            if (reserva.Usuario is IObserver criador && !_observers.Contains(criador))
+            {
+                criador.Update(this, reserva);
+                Console.WriteLine($"Notificação enviada ao criador da reserva: {reserva.Usuario.Nome}");
+            }
         }
 
         
