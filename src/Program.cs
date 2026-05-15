@@ -8,19 +8,17 @@ namespace ReservaDeSalas
     {
         static void Main(string[] args)
         {
-            IGerenciadorDeReservas gerenciadorReal = GerenciadorDeReservasSala.getInstance();
+            IGerenciadorDeReservas gerenciadorReal = GerenciadorDeReservasSala.GetInstance();
             IGerenciadorDeReservas gerenciador = new GerenciadorDeReservasSalaProxy(gerenciadorReal);
 
-            //Teste1
             Console.WriteLine("=== TESTES AUTOMÁTICOS DO PROXY ===");
             Console.WriteLine("\n[TESTE CACHE] Primeira consulta:");
             gerenciador.GetReservas();
             Console.WriteLine("[TESTE CACHE] Segunda consulta (deve vir do cache):");
             gerenciador.GetReservas();
 
-            //Teste2
             Usuario alunoTeste = new Usuario("Letícia") { Nivel = NivelAcesso.Aluno };
-            Reserva reservaTeste = new Reserva { Id = "T-01", Usuario = alunoTeste };
+            Reserva reservaTeste = new Reserva { Id = "T-01", Usuario = alunoTeste, Sala = new SalaEstudoIndividual("X1") }; 
             Console.WriteLine("\n[TESTE SEGURANÇA] Cancelando como Aluno (deve ser negado):");
             gerenciador.CancelarReserva(reservaTeste);
 
@@ -55,7 +53,7 @@ namespace ReservaDeSalas
                 Console.WriteLine("6. Sair");
                 Console.Write("\nEscolha uma opção: ");
 
-                string opcao = Console.ReadLine();
+                string? opcao = Console.ReadLine();
 
                 switch (opcao)
                 {
@@ -69,7 +67,7 @@ namespace ReservaDeSalas
                         CancelarReserva(gerenciador);
                         break;
                     case "4":
-                        AlterarPolitica(ref politica);
+                        politica = AlterarPolitica(politica);
                         break;
                     case "5":
                         EmitirRelatorioDiario(gerenciador);
@@ -89,15 +87,25 @@ namespace ReservaDeSalas
                 Console.Clear();
                 Console.WriteLine("--- NOVA RESERVA ---");
                 Console.Write("Nome do Usuário: ");
-                string nomeUsuario = Console.ReadLine();
+                string? nomeUsuario = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(nomeUsuario))
+                {
+                    Console.WriteLine("Nome de usuário inválido! Pressione qualquer tecla para voltar ao menu...");
+                    Console.ReadKey();
+                    return;
+                }
 
                 Console.WriteLine("Nível de Acesso (0: Aluno, 1: Docente, 2: Admin):");
-                if (!int.TryParse(Console.ReadLine(), out int nivel)) nivel = 0;
+                if (!int.TryParse(Console.ReadLine(), out int nivel) || !Enum.IsDefined(typeof(NivelAcesso), nivel))
+                {
+                    Console.WriteLine("Nível de acesso inválido! Pressione qualquer tecla para voltar ao menu...");
+                    Console.ReadKey();
+                    return;
+                }
 
                 Usuario usuario = new Usuario(nomeUsuario);
-
                 usuario.Nivel = (NivelAcesso)nivel;
-                usuario.IsDocente = (nivel >= 1);
+                usuario.IsDocente = (nivel == (int)NivelAcesso.Docente);
 
                 gerenciador.AddObserver(usuario);
 
@@ -126,7 +134,7 @@ namespace ReservaDeSalas
                 Console.Write("Horário de Início (HH:mm): ");
                 if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan inicio))
                 {
-                    Console.WriteLine("Horário inválido! Pressione qualquer tecla para voltar ao menu...");
+                    Console.WriteLine("Horário de início inválido! Pressione qualquer tecla para voltar ao menu...");
                     Console.ReadKey();
                     return;
                 }
@@ -134,13 +142,20 @@ namespace ReservaDeSalas
                 Console.Write("Horário de Fim (HH:mm): ");
                 if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan fim) || fim <= inicio)
                 {
-                    Console.WriteLine("Horário inválido! Pressione qualquer tecla para voltar ao menu...");
+                    Console.WriteLine("Horário de fim inválido ou anterior ao início! Pressione qualquer tecla para voltar ao menu...");
                     Console.ReadKey();
                     return;
                 }
 
                 DateTime inicioReserva = dataReserva.Date.Add(inicio);
                 DateTime fimReserva = dataReserva.Date.Add(fim);
+
+                if (inicioReserva < DateTime.Now)
+                {
+                    Console.WriteLine("Não é possível criar reservas no passado! Pressione qualquer tecla para voltar ao menu...");
+                    Console.ReadKey();
+                    return;
+                }
 
                 Reserva novaReserva = new Reserva
                 {
@@ -155,13 +170,13 @@ namespace ReservaDeSalas
                 while (true)
                 {
                     Console.Write("\nDeseja adicionar extras? (s/n): ");
-                    string resposta = Console.ReadLine().Trim().ToLower();
+                    string? resposta = Console.ReadLine()?.Trim().ToLower();
                     if (resposta == "s")
                     {
                         Console.WriteLine("1. Equipamento Multimídia");
                         Console.WriteLine("2. Serviço de Limpeza");
                         Console.Write("Escolha (número): ");
-                        string extra = Console.ReadLine();
+                        string? extra = Console.ReadLine();
                         switch (extra)
                         {
                             case "1":
@@ -260,30 +275,28 @@ namespace ReservaDeSalas
                 Console.ReadKey();
             }
 
-            static IPoliticaDeReserva AlterarPolitica(ref IPoliticaDeReserva politica)
+            static IPoliticaDeReserva AlterarPolitica(IPoliticaDeReserva politicaAtual)
             {
                 Console.Clear();
                 Console.WriteLine("--- ALTERAR POLÍTICA DE RESERVA ---");
                 Console.WriteLine("1. Primeiro a Chegar");
                 Console.WriteLine("2. Prioridade para Docentes");
                 Console.Write("\nEscolha a nova política (número): ");
-                string opcao = Console.ReadLine();
+                string? opcao = Console.ReadLine();
 
-                string opt = Console.ReadLine();
-                if (opt == "2")
+                switch (opcao)
                 {
-                    politica = new PoliticaPrioridadeDocente();
-                    Console.WriteLine("Política alterada para: Prioridade Docentes");
+                    case "1":
+                        Console.WriteLine("Política alterada para: Primeiro a Chegar");
+                        return new PoliticaPrimeiroChegar();
+                    case "2":
+                        Console.WriteLine("Política alterada para: Prioridade Docentes");
+                        return new PoliticaPrioridadeDocente();
+                    default:
+                        Console.WriteLine("Opção inválida! Mantendo política atual. Pressione qualquer tecla para voltar ao menu...");
+                        Console.ReadKey();
+                        return politicaAtual;
                 }
-                else
-                {
-                    politica = new PoliticaPrimeiroChegar();
-                    Console.WriteLine("Política alterada para: Primeiro a Chegar");
-                }
-
-                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
-                Console.ReadKey();
-                return politica;
             }
 
             static void EmitirRelatorioDiario(IGerenciadorDeReservas gerenciador)

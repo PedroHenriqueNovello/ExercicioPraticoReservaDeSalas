@@ -6,12 +6,12 @@ namespace ReservaDeSalas
     public class GerenciadorDeReservasSala : IGerenciadorDeReservas
     {
         private GerenciadorDeReservasSala() { }
-        private static GerenciadorDeReservasSala instance;
+        private static GerenciadorDeReservasSala instance = null!;
         private static readonly object _trava = new object();
         private List<Reserva> _reservas = new List<Reserva>();
         private List<IObserver> _observers = new List<IObserver>();
 
-        public static GerenciadorDeReservasSala getInstance()
+        public static GerenciadorDeReservasSala GetInstance()
         {
             lock (_trava)
             {
