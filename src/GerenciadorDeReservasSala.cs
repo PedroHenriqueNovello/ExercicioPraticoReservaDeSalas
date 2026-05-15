@@ -29,28 +29,28 @@ namespace ReservaDeSalas
         public void NotifyObservers(Reserva reserva)
         {
             foreach (var obs in _observers) obs.Update(this, reserva);
-            if (reserva.Usuario is IObserver criador && !_observers.Contains(criador))
-            {
-                criador.Update(this, reserva);
-            }
         }
 
-        
         public int GetTotalReservasAtivas() => _reservas.Count;
 
-        public void AdicionarReserva(Reserva r) 
+        public bool AdicionarReserva(Reserva r, Usuario usuarioLogado) 
         {
             _reservas.Add(r);
             NotifyObservers(r);
+            return true;
         }
-        public void CancelarReserva(Reserva r)
+
+        public bool CancelarReserva(Reserva r, Usuario usuarioLogado)
         {
             if (_reservas.Remove(r))
             {
                 r.Detalhes = "CANCELADA";
                 NotifyObservers(r);
+                return true;
             }
+            return false;
         }
+
         public List<Reserva> GetReservas() => _reservas;
     }
 }

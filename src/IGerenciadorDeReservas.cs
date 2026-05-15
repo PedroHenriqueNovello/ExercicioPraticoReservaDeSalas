@@ -4,8 +4,8 @@ namespace ReservaDeSalas
 {
     public interface IGerenciadorDeReservas : ISubject
     {
-        void AdicionarReserva(Reserva r);
-        void CancelarReserva(Reserva r);
+        bool AdicionarReserva(Reserva r, Usuario usuarioLogado);
+        bool CancelarReserva(Reserva r, Usuario usuarioLogado);
         List<Reserva> GetReservas();
     }
 }

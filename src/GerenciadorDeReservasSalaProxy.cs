@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Linq;
 
 namespace ReservaDeSalas
 {
@@ -16,40 +16,70 @@ namespace ReservaDeSalas
             _cacheExpiracao = DateTime.MinValue;
         }
 
-        public virtual void AdicionarReserva(Reserva r)
+        public virtual bool AdicionarReserva(Reserva r, Usuario usuarioLogado)
         {
-            if (r.Usuario.Nivel == NivelAcesso.Admin || r.Usuario.Nivel == NivelAcesso.Docente || r.Usuario.Nivel == NivelAcesso.Aluno)
+            string tipoSala = r.Sala.GetTipo();
+            bool autorizado = false;
+
+            if (usuarioLogado.Nivel == NivelAcesso.Admin || usuarioLogado.Nivel == NivelAcesso.Docente)
+            {
+                autorizado = true;
+            }
+            else if (usuarioLogado.Nivel == NivelAcesso.Aluno)
+            {
+                if (tipoSala == "Estudo Individual" || tipoSala == "Trabalho em Grupo")
+                    autorizado = true;
+                else
+                    Console.WriteLine("[PROXY] Erro: Alunos não podem reservar Laboratórios.");
+            }
+
+            if (autorizado)
             {
                 Console.WriteLine($"[PROXY] Acesso autorizado para adição.");
-                _gerenciadorReal.AdicionarReserva(r);
-                InvalidarCache();
+                bool sucesso = _gerenciadorReal.AdicionarReserva(r, usuarioLogado);
+                if (sucesso) InvalidarCache();
+                return sucesso;
+            }
+
+            Console.WriteLine($"[PROXY] Acesso negado para adição de reserva na sala '{r.Sala.Id}'.");
+            return false;
+        }
+
+        public virtual bool CancelarReserva(Reserva r, Usuario usuarioLogado)
+        {
+            bool autorizado = false;
+
+            if (usuarioLogado.Nivel == NivelAcesso.Admin)
+            {
+                autorizado = true;
+            }
+            else if (r.Usuario.Nome.Equals(usuarioLogado.Nome, StringComparison.OrdinalIgnoreCase))
+            {
+                autorizado = true;
             }
             else
             {
-                Console.WriteLine($"[PROXY] Acesso negado para adição.");
+                Console.WriteLine($"[PROXY] Erro: Você só pode cancelar suas próprias reservas.");
             }
-        }
-        public virtual void CancelarReserva(Reserva r)
-        {
-            if (r.Usuario.Nivel == NivelAcesso.Admin || r.Usuario.Nivel == NivelAcesso.Docente)
+
+            if (autorizado)
             {
                 Console.WriteLine($"[PROXY] Acesso autorizado para cancelamento.");
-                _gerenciadorReal.CancelarReserva(r);
-                InvalidarCache();
+                bool sucesso = _gerenciadorReal.CancelarReserva(r, usuarioLogado);
+                if (sucesso) InvalidarCache();
+                return sucesso;
             }
-            else
-            {
-                Console.WriteLine($"[PROXY] Acesso negado para cancelamento.");
-            }
+
+            return false;
         }
+
         public virtual List<Reserva> GetReservas()
         {
-            if(_cacheReservas != null && DateTime.Now < _cacheExpiracao)
+            if (_cacheReservas != null && DateTime.Now < _cacheExpiracao)
             {
                 Console.WriteLine("[PROXY] Retornando dados do CACHE.");
                 return _cacheReservas;
             }
-            Console.WriteLine("[PROXY] Consultando Gerenciador Real...");
             _cacheReservas = _gerenciadorReal.GetReservas();
             _cacheExpiracao = DateTime.Now.AddSeconds(10);
             return _cacheReservas;
@@ -60,6 +90,7 @@ namespace ReservaDeSalas
             _cacheReservas = null;
             _cacheExpiracao = DateTime.MinValue;
         }
+
         public int GetTotalReservasAtivas() => _gerenciadorReal.GetTotalReservasAtivas();
         public void AddObserver(IObserver observer) => _gerenciadorReal.AddObserver(observer);
         public void RemoveObserver(IObserver observer) => _gerenciadorReal.RemoveObserver(observer);
