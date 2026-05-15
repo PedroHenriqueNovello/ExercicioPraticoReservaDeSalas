@@ -1,17 +1,15 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ReservaDeSalas
 {
-    public class GerenciadorDeReservasSala : ISubject
+    public class GerenciadorDeReservasSala : IGerenciadorDeReservas
     {
         private GerenciadorDeReservasSala() { }
         private static GerenciadorDeReservasSala instance;
         private static readonly object _trava = new object();
         private List<Reserva> _reservas = new List<Reserva>();
-
-        // Lista de observadores
         private List<IObserver> _observers = new List<IObserver>();
-
 
         public static GerenciadorDeReservasSala getInstance()
         {
@@ -22,8 +20,10 @@ namespace ReservaDeSalas
             }
         }
 
-        // Métodos do ISubject
-        public void AddObserver(IObserver observer) => _observers.Add(observer);
+        public void AddObserver(IObserver observer)
+        {
+            if (!_observers.Contains(observer)) _observers.Add(observer);
+        }
         public void RemoveObserver(IObserver observer) => _observers.Remove(observer);
         
         public void NotifyObservers(Reserva reserva)
@@ -32,7 +32,6 @@ namespace ReservaDeSalas
             if (reserva.Usuario is IObserver criador && !_observers.Contains(criador))
             {
                 criador.Update(this, reserva);
-                Console.WriteLine($"Notificação enviada ao criador da reserva: {reserva.Usuario.Nome}");
             }
         }
 
