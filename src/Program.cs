@@ -75,9 +75,13 @@ namespace ReservaDeSalas
                 Console.Write("Nome do Usuário: ");
                 string nomeUsuario = Console.ReadLine();
 
-                Console.Write("É docente? (s/n): ");
-                bool isDocente = Console.ReadLine().Trim().ToLower() == "s";
-                Usuario usuario = new Usuario(nomeUsuario) { IsDocente = isDocente };
+                Console.WriteLine("Nível de Acesso (0: Aluno, 1: Docente, 2: Admin):");
+                if (!int.TryParse(Console.ReadLine(), out int nivel)) nivel = 0;
+
+                Usuario usuario = new Usuario(nomeUsuario);
+
+                usuario.Nivel = (NivelAcesso)nivel;
+                usuario.IsDocente = (nivel >= 1);
 
                 gerenciador.AddObserver(usuario);
 
@@ -119,8 +123,8 @@ namespace ReservaDeSalas
                     return;
                 }
 
-                DateTime inicioReserva = DateTime.Today.Add(inicio);
-                DateTime fimReserva = DateTime.Today.Add(fim);
+                DateTime inicioReserva = dataReserva.Date.Add(inicio);
+                DateTime fimReserva = dataReserva.Date.Add(fim);
 
                 Reserva novaReserva = new Reserva
                 {
