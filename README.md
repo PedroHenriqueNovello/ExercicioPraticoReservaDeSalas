@@ -1,53 +1,101 @@
-# Sistema de Reserva de Salas de Estudo
+# Sistema de Reserva de Salas
 
+Este projeto implementa um sistema de reserva de salas utilizando C# e diversos padrões de projeto para garantir modularidade, extensibilidade e um controle de acesso robusto.
 
-## Visão Geral
+## Funcionalidades
 
-Este projeto é a modelagem e prototipagem de uma aplicação de "Reserva de Salas de Estudo" para um campus universitário. O objetivo principal é aplicar conceitos avançados de Projeto de Software Orientado a Objetos, com foco na lógica de domínio e na implementação de Padrões de Projeto (Design Patterns).
-
-
-## Requisitos Funcionais Implementados
-
-- **RF-01:** Listar salas disponíveis em um intervalo de datas.
-
-- **RF-02:** Permitir criação, modificação e cancelamento de reservas.
-
-- **RF-03:** Detectar e impedir colisões de horário.
-
-- **RF-04:** Sistema de notificação imediata para alterações/cancelamentos.
-
-- **RF-05:** Geração de relatório diário de reservas confirmadas.
-
-- **RF-06:** Implementação do Padrão Decorator para serviços extras
-
-
+- **Reserva de Salas:** Permite que usuários reservem diferentes tipos de salas (Estudo Individual, Trabalho em Grupo, Laboratório).
+- **Políticas de Reserva:** Suporta diferentes políticas para aprovação de reservas (e.g., Primeiro a Chegar, Prioridade para Docentes).
+- **Autenticação e Autorização:** Sistema de login e registro de usuários com diferentes níveis de acesso (Aluno, Docente, Admin).
+- **Persistência de Usuários:** Dados dos usuários são salvos em um arquivo JSON (`usuarios.json`).
+- **Controle de Acesso Refinado (Proxy):**
+    - **Alunos:** Podem reservar apenas salas de Estudo Individual e Trabalho em Grupo. Não podem cancelar reservas de outros usuários.
+    - **Docentes:** Podem reservar qualquer tipo de sala. Não podem cancelar reservas de outros usuários.
+    - **Administradores:** Podem reservar qualquer tipo de sala e cancelar qualquer reserva.
+- **Notificações:** Usuários são notificados sobre o status de suas reservas (via padrão Observer).
+- **Extras de Reserva (Decorator):** Possibilidade de adicionar equipamentos multimídia ou serviço de limpeza a uma reserva.
+- **Cache de Reservas (Proxy):** Otimização de desempenho para listagem de reservas, com cache de 10 segundos.
+- **Relatórios:** Geração de relatório diário de reservas.
+- **Interface de Linha de Comando (CLI):** Menu interativo para interação com o sistema.
 
 ## Padrões de Projeto Utilizados
 
-A arquitetura do sistema foi desenvolvida em **C#** e aplica os seguintes padrões GoF:
+- **Singleton:** `GerenciadorDeReservasSala` garante uma única instância para gerenciar todas as reservas.
+- **Factory Method:** `SalaFactory` (e suas implementações `SalaIndividualFactory`, `SalaGrupoFactory`, `SalaLaboratorioFactory`) para criar diferentes tipos de salas de forma flexível.
+- **Proxy:** `GerenciadorDeReservasSalaProxy` atua como um intermediário para adicionar controle de acesso (autenticação e autorização) e cache de listagem de reservas, sem modificar a lógica central do `GerenciadorDeReservasSala`.
+- **Decorator:** `EquipamentoMultimidiaDecorator` e `ServicoDeLimpezaDecorator` permitem adicionar funcionalidades extras a uma reserva dinamicamente.
+- **Observer:** `Usuario` implementa `IObserver` para receber notificações sobre atualizações de reservas, e `GerenciadorDeReservasSala` atua como `ISubject`.
+- **Strategy:** `IPoliticaDeReserva` (e suas implementações `PoliticaPrimeiroChegar`, `PoliticaPrioridadeDocente`) permite trocar a lógica de aprovação de reservas em tempo de execução.
 
-1. **Singleton:** Gerenciamento do repositório de reservas em memória, garantindo thread-safety.
+## Configuração e Execução
 
-2. **Factory Method:** Instanciação flexível de diferentes tipos de salas (Estudo Individual, Trabalho em Grupo, Laboratório).
+### Pré-requisitos
 
-3. **Strategy:** Dinamismo na política de detecção de colisões de reserva (ex: "primeiro a reservar" vs. "prioridade docente").
+- .NET SDK 6.0 ou superior.
 
-4. **Observer:** Mecanismo de push/pull para propagar eventos e notificações aos usuários envolvidos.
+### Como Executar
 
+1. **Navegue até o diretório do projeto:**
+   ```bash
+   cd ../projeto_reserva/ExercicioPraticoReservaDeSalas2
+   ```
+2. **Compile o projeto:**
+   ```bash
+   dotnet build
+   ```
+3. **Execute a aplicação:**
+   ```bash
+   dotnet run
+   ```
 
+### Uso do Sistema
 
-## Estrutura do Repositório
+Ao iniciar a aplicação, você será apresentado a um menu de login/registro:
 
-- `/src`: Código-fonte principal da aplicação.
+1. **Login:** Utilize um usuário existente. Por padrão, um usuário `admin` com senha `admin123` é criado automaticamente na primeira execução, caso não exista.
+2. **Registrar Novo Usuário:** Crie novos usuários com diferentes níveis de acesso (Aluno, Docente, Admin).
 
-- `/docs`: Diagramas e documentações complementares.
+Após o login, o menu principal permitirá:
 
+- **Criar Nova Reserva:** Faça uma reserva, escolhendo a sala, data, horário e adicionando extras (se desejar). As permissões de sala são validadas aqui.
+- **Listar Reservas Atuais:** Visualize todas as reservas ativas.
+- **Cancelar Reserva:** Cancele uma reserva existente. As permissões de cancelamento são validadas aqui.
+- **Alterar Política de Reserva:** Apenas administradores podem alterar a política de reserva (Primeiro a Chegar ou Prioridade para Docentes).
+- **Emitir Relatório Diário:** Gere um relatório das reservas para uma data específica.
+- **Logout:** Desconecta o usuário atual.
+- **Sair:** Encerra a aplicação.
 
+## Estrutura do Projeto
 
-## Autores
+```
+ExercicioPraticoReservaDeSalas2/
+├── src/
+│   ├── Program.cs                  # Ponto de entrada da aplicação, menu e fluxo principal.
+│   ├── Usuario.cs                  # Define a entidade Usuário e seu nível de acesso.
+│   ├── UsuarioService.cs           # Gerencia a persistência e autenticação de usuários (JSON).
+│   ├── IGerenciadorDeReservas.cs   # Interface para o gerenciador de reservas.
+│   ├── GerenciadorDeReservasSala.cs# Implementação concreta do gerenciador de reservas (Singleton).
+│   ├── GerenciadorDeReservasSalaProxy.cs # Proxy para controle de acesso e cache.
+│   ├── IObserver.cs, ISubject.cs   # Interfaces para o padrão Observer.
+│   ├── Reserva.cs                  # Entidade Reserva.
+│   ├── Sala.cs, SalaFactory.cs     # Classes base e fábrica para diferentes tipos de salas.
+│   ├── SalaEstudoIndividual.cs, SalaGrupo.cs, SalaLaboratorio.cs # Implementações de salas.
+│   ├── IPoliticaDeReserva.cs       # Interface para políticas de reserva.
+│   ├── PoliticaPrimeiroChegar.cs, PoliticaPrioridadeDocente.cs # Implementações de políticas.
+│   ├── EquipamentoMultimidiaDecorator.cs, ServicoDeLimpezaDecorator.cs # Decorators para extras.
+│   └── ... (outros arquivos de classes)
+├── docs/
+│   ├── funcionalidade_adicional.md # Documentação detalhada do padrão Proxy.
+│   └── diagrama_sequencia.png # Diagrama de sequência completo do Projeto
+├── usuarios.json                   # Arquivo de persistência dos usuários.
+└── ExercicioPraticoReservaDeSalas2.sln # Arquivo de solução do Visual Studio.
+```
 
-- Letícia Abrahão Moreira
+## Melhorias Futuras
 
-- Pedro Henrique Novello D'Elia Porto de Almeida 
-
-- Enrico Manzolli Bertoni (Extensão)
+- **Persistência de Reservas:** Atualmente, as reservas são voláteis e perdidas ao encerrar a aplicação. Implementar persistência (e.g., em JSON, XML ou banco de dados) para as reservas.
+- **Validação de Conflitos de Horário:** Refinar a lógica de validação para cenários mais complexos (e.g., reservas parciais, sobreposição de datas).
+- **Interface Gráfica:** Desenvolver uma interface de usuário mais amigável (e.g., via ASP.NET Core, WPF ou Blazor).
+- **Testes Unitários:** Adicionar testes unitários para as classes de lógica de negócio e padrões de projeto.
+- **Notificações Assíncronas:** Implementar um sistema de notificação mais robusto, talvez com filas de mensagens ou eventos.
+- **Gerenciamento de Salas:** Adicionar funcionalidades para criar, editar e remover salas dinamicamente.
