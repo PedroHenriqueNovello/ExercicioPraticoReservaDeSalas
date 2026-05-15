@@ -8,8 +8,9 @@ namespace ReservaDeSalas
     {
         static void Main(string[] args)
         {
-            var gerenciador = GerenciadorDeReservasSala.getInstance();
-
+            IGerenciadorDeReservas gerenciadorReal = GerenciadorDeReservasSala.getInstance();
+            IGerenciadorDeReservas gerenciador = new GerenciadorDeReservasSalaProxy(gerenciadorReal);
+        
             SalaFactory fabricaIndividual = new SalaIndividualFactory();
             SalaFactory fabricaGrupo = new SalaGrupoFactory();
             SalaFactory fabricaLab = new SalaLaboratorioFactory();
@@ -67,7 +68,7 @@ namespace ReservaDeSalas
                 }
             }
 
-            static void CriarReserva(GerenciadorDeReservasSala gerenciador, List<Sala> salas, IPoliticaDeReserva politica)
+            static void CriarReserva(IGerenciadorDeReservas gerenciador, List<Sala> salas, IPoliticaDeReserva politica)
             {
                 Console.Clear();
                 Console.WriteLine("--- NOVA RESERVA ---");
@@ -182,7 +183,7 @@ namespace ReservaDeSalas
                 Console.ReadKey();
             }
 
-            static void ListarReservas(GerenciadorDeReservasSala gerenciador)
+            static void ListarReservas(IGerenciadorDeReservas gerenciador)
             {
                 Console.Clear();
                 Console.WriteLine("--- RESERVAS ATIVAS ---");
@@ -206,7 +207,7 @@ namespace ReservaDeSalas
                 Console.ReadKey();
             }
 
-            static void CancelarReserva(GerenciadorDeReservasSala gerenciador)
+            static void CancelarReserva(IGerenciadorDeReservas gerenciador)
             {
                 Console.Clear();
                 Console.WriteLine("--- CANCELAR RESERVA ---");
@@ -265,7 +266,7 @@ namespace ReservaDeSalas
                 return politica;
             }
 
-            static void EmitirRelatorioDiario(GerenciadorDeReservasSala gerenciador)
+            static void EmitirRelatorioDiario(IGerenciadorDeReservas gerenciador)
             {
                 Console.Clear();
                 Console.WriteLine("--- RELATÓRIO DIÁRIO DE RESERVAS ---");
