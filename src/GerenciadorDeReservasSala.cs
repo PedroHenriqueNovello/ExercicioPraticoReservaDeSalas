@@ -1,19 +1,17 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ReservaDeSalas
 {
-    public class GerenciadorDeReservasSala : ISubject
+    public class GerenciadorDeReservasSala : IGerenciadorDeReservas
     {
         private GerenciadorDeReservasSala() { }
-        private static GerenciadorDeReservasSala instance;
+        private static GerenciadorDeReservasSala instance = null!;
         private static readonly object _trava = new object();
         private List<Reserva> _reservas = new List<Reserva>();
-
-        // Lista de observadores
         private List<IObserver> _observers = new List<IObserver>();
 
-
-        public static GerenciadorDeReservasSala getInstance()
+        public static GerenciadorDeReservasSala GetInstance()
         {
             lock (_trava)
             {
@@ -22,36 +20,37 @@ namespace ReservaDeSalas
             }
         }
 
-        // Métodos do ISubject
-        public void AddObserver(IObserver observer) => _observers.Add(observer);
+        public void AddObserver(IObserver observer)
+        {
+            if (!_observers.Contains(observer)) _observers.Add(observer);
+        }
         public void RemoveObserver(IObserver observer) => _observers.Remove(observer);
         
         public void NotifyObservers(Reserva reserva)
         {
             foreach (var obs in _observers) obs.Update(this, reserva);
-            if (reserva.Usuario is IObserver criador && !_observers.Contains(criador))
-            {
-                criador.Update(this, reserva);
-                Console.WriteLine($"Notificação enviada ao criador da reserva: {reserva.Usuario.Nome}");
-            }
         }
 
-        
         public int GetTotalReservasAtivas() => _reservas.Count;
 
-        public void AdicionarReserva(Reserva r) 
+        public bool AdicionarReserva(Reserva r, Usuario usuarioLogado) 
         {
             _reservas.Add(r);
             NotifyObservers(r);
+            return true;
         }
-        public void CancelarReserva(Reserva r)
+
+        public bool CancelarReserva(Reserva r, Usuario usuarioLogado)
         {
             if (_reservas.Remove(r))
             {
                 r.Detalhes = "CANCELADA";
                 NotifyObservers(r);
+                return true;
             }
+            return false;
         }
+
         public List<Reserva> GetReservas() => _reservas;
     }
 }

@@ -4,14 +4,14 @@ namespace ReservaDeSalas
 {
     public class Reserva 
     { 
-        public virtual string Id { get; set; }
-        public virtual string Detalhes { get; set; } 
+        public virtual string Id { get; set; } = string.Empty;
+        public virtual string Detalhes { get; set; } = string.Empty;
 
-        public virtual Sala Sala { get; set; }
+        public virtual Sala Sala { get; set; } = null!;
 
-        public virtual Usuario Usuario {get; set;}
-        public virtual DateTime Inicio {get; set;}
-        public virtual DateTime Fim {get; set;}
+        public virtual Usuario Usuario {get; set;} = null!;
+        public virtual DateTime Inicio {get; set;} = DateTime.Now;
+        public virtual DateTime Fim {get; set;} = DateTime.Now.AddHours(1);
         public virtual string GetDescricao() => Detalhes; 
     }
 

@@ -6,9 +6,13 @@ namespace ReservaDeSalas
 {
     class Program
     {
+        private static Usuario? _usuarioLogado = null;
+        private static UsuarioService _usuarioService = new UsuarioService();
+
         static void Main(string[] args)
         {
-            var gerenciador = GerenciadorDeReservasSala.getInstance();
+            IGerenciadorDeReservas gerenciadorReal = GerenciadorDeReservasSala.GetInstance();
+            IGerenciadorDeReservas gerenciador = new GerenciadorDeReservasSalaProxy(gerenciadorReal);
 
             SalaFactory fabricaIndividual = new SalaIndividualFactory();
             SalaFactory fabricaGrupo = new SalaGrupoFactory();
@@ -25,20 +29,29 @@ namespace ReservaDeSalas
 
             while (true)
             {
-                Console.Clear();    
+                if (_usuarioLogado == null)
+                {
+                    MenuLogin();
+                    continue;
+                }
+
+                Console.Clear();
                 Console.WriteLine("=====================================");
-                Console.WriteLine("  SISTEMA DE RESERVA DE SALAS - V1   ");
+                Console.WriteLine("  SISTEMA DE RESERVA DE SALAS - V2   ");
                 Console.WriteLine("=====================================");
+                Console.WriteLine($"Usuário: {_usuarioLogado.Nome} ({_usuarioLogado.Nivel})");
                 Console.WriteLine($"Política Atual: {politica.GetType().Name}");
+                Console.WriteLine("-------------------------------------");
                 Console.WriteLine("1. Criar Nova Reserva");
                 Console.WriteLine("2. Listar Reservas Atuais");
                 Console.WriteLine("3. Cancelar Reserva");
                 Console.WriteLine("4. Alterar Política de Reserva");
                 Console.WriteLine("5. Emitir Relatório Diário");
-                Console.WriteLine("6. Sair");
+                Console.WriteLine("6. Logout");
+                Console.WriteLine("7. Sair");
                 Console.Write("\nEscolha uma opção: ");
 
-                string opcao = Console.ReadLine();
+                string? opcao = Console.ReadLine();
 
                 switch (opcao)
                 {
@@ -52,253 +65,265 @@ namespace ReservaDeSalas
                         CancelarReserva(gerenciador);
                         break;
                     case "4":
-                        AlterarPolitica(ref politica);
+                        politica = AlterarPolitica(politica);
                         break;
                     case "5":
                         EmitirRelatorioDiario(gerenciador);
                         break;
                     case "6":
-                        Console.WriteLine("Encerrando o sistema...");
+                        _usuarioLogado = null;
+                        Console.WriteLine("Logout realizado com sucesso!");
+                        break;
+                    case "7":
                         return;
                     default:
-                        Console.WriteLine("Opção inválida! Pressione qualquer tecla para tentar novamente...");
+                        Console.WriteLine("Opção inválida!");
                         Console.ReadKey();
                         break;
                 }
             }
+        }
 
-            static void CriarReserva(GerenciadorDeReservasSala gerenciador, List<Sala> salas, IPoliticaDeReserva politica)
+        static void MenuLogin()
+        {
+            Console.Clear();
+            Console.WriteLine("=== BEM-VINDO AO SISTEMA DE RESERVAS ===");
+            Console.WriteLine("1. Login");
+            Console.WriteLine("2. Registrar Novo Usuário");
+            Console.WriteLine("3. Sair");
+            Console.Write("\nEscolha: ");
+
+            string? opt = Console.ReadLine();
+            if (opt == "1")
             {
-                Console.Clear();
-                Console.WriteLine("--- NOVA RESERVA ---");
-                Console.Write("Nome do Usuário: ");
-                string nomeUsuario = Console.ReadLine();
-
-                Console.Write("É docente? (s/n): ");
-                bool isDocente = Console.ReadLine().Trim().ToLower() == "s";
-                Usuario usuario = new Usuario(nomeUsuario) { IsDocente = isDocente };
-
-                gerenciador.AddObserver(usuario);
-
-                Console.WriteLine("\nSalas Disponíveis:");
-                for (int i = 0; i < salas.Count; i++)
+                Console.Write("Usuário: ");
+                string? nome = Console.ReadLine();
+                Console.Write("Senha: ");
+                string? senha = Console.ReadLine();
+                _usuarioLogado = _usuarioService.Autenticar(nome ?? "", senha ?? "");
+                if (_usuarioLogado == null)
                 {
-                    Console.WriteLine($"{i + 1}. {salas[i].Id} ({salas[i].GetTipo()})");
-                }
-                Console.Write("\nEscolha a sala (número): ");
-                if (!int.TryParse(Console.ReadLine(), out int salaIdx) || salaIdx < 1 || salaIdx > salas.Count)
-                {
-                    Console.WriteLine("Sala inválida! Pressione qualquer tecla para voltar ao menu...");
+                    Console.WriteLine("Credenciais inválidas! Pressione qualquer tecla...");
                     Console.ReadKey();
-                    return;
                 }
-                Sala salaEscolhida = salas[salaIdx - 1];
-
-                Console.Write("Data da Reserva (DD/MM/AAAA): ");
-                if (!DateTime.TryParse(Console.ReadLine(), out DateTime dataReserva))
+            }
+            else if (opt == "2")
+            {
+                Console.Write("Novo Usuário: ");
+                string? nome = Console.ReadLine();
+                Console.Write("Senha: ");
+                string? senha = Console.ReadLine();
+                Console.WriteLine("Nível (0: Aluno, 1: Docente, 2: Admin): ");
+                if (int.TryParse(Console.ReadLine(), out int nivel) && Enum.IsDefined(typeof(NivelAcesso), nivel))
                 {
-                    Console.WriteLine("Data inválida! Pressione qualquer tecla para voltar ao menu...");
-                    Console.ReadKey();
-                    return;
-                }
-
-                Console.Write("Horário de Início (HH:mm): ");
-                if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan inicio))
-                {
-                    Console.WriteLine("Horário inválido! Pressione qualquer tecla para voltar ao menu...");
-                    Console.ReadKey();
-                    return;
-                }
-
-                Console.Write("Horário de Fim (HH:mm): ");
-                if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan fim) || fim <= inicio)
-                {
-                    Console.WriteLine("Horário inválido! Pressione qualquer tecla para voltar ao menu...");
-                    Console.ReadKey();
-                    return;
-                }
-
-                DateTime inicioReserva = DateTime.Today.Add(inicio);
-                DateTime fimReserva = DateTime.Today.Add(fim);
-
-                Reserva novaReserva = new Reserva
-                {
-                    Id = $"RES-" + Guid.NewGuid().ToString().Substring(0, 4).ToUpper(),
-                    Sala = salaEscolhida,
-                    Usuario = usuario,
-                    Inicio = inicioReserva,
-                    Fim = fimReserva,
-                    Detalhes = "Reserva criada via terminal"
-                };
-
-                while (true)
-                {
-                    Console.Write("\nDeseja adicionar extras? (s/n): ");
-                    string resposta = Console.ReadLine().Trim().ToLower();
-                    if (resposta == "s")
-                    {
-                        Console.WriteLine("1. Equipamento Multimídia");
-                        Console.WriteLine("2. Serviço de Limpeza");
-                        Console.Write("Escolha (número): ");
-                        string extra = Console.ReadLine();
-                        switch (extra)
-                        {
-                            case "1":
-                                novaReserva = new EquipamentoMultimidiaDecorator(novaReserva);
-                                break;
-                            case "2":
-                                novaReserva = new ServicoDeLimpezaDecorator(novaReserva);
-                                break;
-                            default:
-                                Console.WriteLine("Opção inválida! Pressione qualquer tecla para tentar novamente...");
-                                Console.ReadKey();
-                                continue;
-                        }
-                    }
-                    else if (resposta == "n")
-                    {
-                        break;
-                    }
+                    if (_usuarioService.Registrar(nome ?? "", senha ?? "", (NivelAcesso)nivel))
+                        Console.WriteLine("Usuário registrado! Faça login.");
                     else
-                    {
-                        Console.WriteLine("Resposta inválida! Pressione qualquer tecla para tentar novamente...");
-                        Console.ReadKey();
-                    }
-                }
-
-                Console.WriteLine("\n[SISTEMA] Tentando processar a reserva...\n");
-                if (politica.AprovarReserva(novaReserva, gerenciador.GetReservas()))
-                {
-                    gerenciador.AdicionarReserva(novaReserva);
-                    Console.WriteLine("[SUCESSO] Reserva aprovada e adicionada com sucesso!");
-                    Console.WriteLine($"Descrição: {novaReserva.GetDescricao()}");
+                        Console.WriteLine("Erro: Usuário já existe.");
                 }
                 else
                 {
-                    Console.WriteLine("[ERRO] Conflito de horário detectado!");
+                    Console.WriteLine("Nível inválido.");
                 }
-
-                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
                 Console.ReadKey();
             }
-
-            static void ListarReservas(GerenciadorDeReservasSala gerenciador)
+            else if (opt == "3") Environment.Exit(0);
+            else
             {
-                Console.Clear();
-                Console.WriteLine("--- RESERVAS ATIVAS ---");
-                var reservas = gerenciador.GetReservas();
-                if (reservas.Count == 0)
+                Console.WriteLine("Opção inválida! Pressione qualquer tecla...");
+                Console.ReadKey();
+            }
+        }
+
+        static void CriarReserva(IGerenciadorDeReservas gerenciador, List<Sala> salas, IPoliticaDeReserva politica)
+        {
+            Console.Clear();
+            Console.WriteLine("--- NOVA RESERVA ---");
+            
+            Console.WriteLine("Salas Disponíveis:");
+            for (int i = 0; i < salas.Count; i++)
+                Console.WriteLine($"{i + 1}. {salas[i].Id} ({salas[i].GetTipo()})");
+
+            Console.Write("\nEscolha a sala: ");
+            if (!int.TryParse(Console.ReadLine(), out int salaIdx) || salaIdx < 1 || salaIdx > salas.Count)
+            {
+                Console.WriteLine("Sala inválida!");
+                Console.ReadKey();
+                return;
+            }
+            Sala salaEscolhida = salas[salaIdx - 1];
+
+            Console.Write("Data (DD/MM/AAAA): ");
+            if (!DateTime.TryParse(Console.ReadLine(), out DateTime data))
+            {
+                Console.WriteLine("Data inválida!");
+                Console.ReadKey();
+                return;
+            }
+            Console.Write("Início (HH:mm): ");
+            if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan inicio))
+            {
+                Console.WriteLine("Horário de início inválido!");
+                Console.ReadKey();
+                return;
+            }
+            Console.Write("Fim (HH:mm): ");
+            if (!TimeSpan.TryParse(Console.ReadLine(), out TimeSpan fim) || fim <= inicio)
+            {
+                Console.WriteLine("Horário de fim inválido ou anterior ao início!");
+                Console.ReadKey();
+                return;
+            }
+
+            DateTime inicioReserva = data.Date.Add(inicio);
+            DateTime fimReserva = data.Date.Add(fim);
+
+            if (inicioReserva < DateTime.Now)
+            {
+                Console.WriteLine("Erro: Não é possível reservar no passado.");
+                Console.ReadKey();
+                return;
+            }
+
+            Reserva nova = new Reserva
+            {
+                Id = "RES-" + Guid.NewGuid().ToString().Substring(0, 4).ToUpper(),
+                Sala = salaEscolhida,
+                Usuario = _usuarioLogado!,
+                Inicio = inicioReserva,
+                Fim = fimReserva,
+                Detalhes = "Reserva via terminal"
+            };
+
+            // Aplicação de Extras (Decorator)
+            Console.Write("Adicionar Extras? (s/n): ");
+            string? respostaExtra = Console.ReadLine()?.Trim().ToLower();
+            if (respostaExtra == "s")
+            {
+                Console.WriteLine("1. Equipamento Multimídia, 2. Serviço de Limpeza");
+                string? extra = Console.ReadLine();
+                if (extra == "1") nova = new EquipamentoMultimidiaDecorator(nova);
+                else if (extra == "2") nova = new ServicoDeLimpezaDecorator(nova);
+                else Console.WriteLine("Opção de extra inválida. Nenhum extra adicionado.");
+            }
+
+            if (politica.AprovarReserva(nova, gerenciador.GetReservas()))
+            {
+                if (gerenciador.AdicionarReserva(nova, _usuarioLogado!))
                 {
-                    Console.WriteLine("Nenhuma reserva ativa.");
+                    Console.WriteLine("\n[SUCESSO] Reserva realizada!");
+                    Console.WriteLine($"Descrição: {nova.GetDescricao()}");
                 }
+            }
+            else Console.WriteLine("\n[ERRO] Conflito de horário ou política não aprovada!");
+
+            Console.ReadKey();
+        }
+
+        static void ListarReservas(IGerenciadorDeReservas gerenciador)
+        {
+            Console.Clear();
+            Console.WriteLine("--- RESERVAS ATIVAS ---");
+            var reservas = gerenciador.GetReservas();
+            if (!reservas.Any())
+            {
+                Console.WriteLine("Nenhuma reserva ativa.");
+            }
+            else
+            {
+                foreach (var r in reservas)
+                {
+                    Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome}");
+                    Console.WriteLine($"Horário: {r.Inicio:dd/MM HH:mm} - {r.Fim:HH:mm}");
+                    Console.WriteLine($"Descrição: {r.GetDescricao()}");
+                    Console.WriteLine("-----------------------------------");
+                }
+            }
+            Console.ReadKey();
+        }
+
+        static void CancelarReserva(IGerenciadorDeReservas gerenciador)
+        {
+            Console.Clear();
+            Console.WriteLine("--- CANCELAR RESERVA ---");
+            var reservas = gerenciador.GetReservas();
+
+            if (!reservas.Any())
+            {
+                Console.WriteLine("Nenhuma reserva ativa para cancelar.");
+                Console.ReadKey();
+                return;
+            }
+
+            for (int i = 0; i < reservas.Count; i++)
+                Console.WriteLine($"{i + 1}. {reservas[i].Id} - {reservas[i].Sala.Id} ({reservas[i].Usuario.Nome})");
+
+            Console.Write("\nEscolha a reserva para cancelar (número): ");
+            if (int.TryParse(Console.ReadLine(), out int idx) && idx > 0 && idx <= reservas.Count)
+            {
+                Reserva reservaParaCancelar = reservas[idx - 1];
+                if (gerenciador.CancelarReserva(reservaParaCancelar, _usuarioLogado!))
+                    Console.WriteLine("Cancelado com sucesso!");
                 else
-                {
-                    foreach (var r in reservas)
-                    {
-                        string tipoUsuario = r.Usuario.IsDocente ? "Docente" : "Aluno";
-                        Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario})");
-                        Console.WriteLine($"   Data: {r.Inicio:dd/MM/yyyy} | Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
-                        Console.WriteLine($"   Detalhes: {r.GetDescricao()}");
-                        Console.WriteLine("-----------------------------------");
-                    }
-                }
-                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
-                Console.ReadKey();
+                    Console.WriteLine("Falha no cancelamento (verifique permissões ou se a reserva existe).");
             }
-
-            static void CancelarReserva(GerenciadorDeReservasSala gerenciador)
+            else
             {
-                Console.Clear();
-                Console.WriteLine("--- CANCELAR RESERVA ---");
-                var reservas = gerenciador.GetReservas();
-                if (reservas.Count == 0)
-                {
-                    Console.WriteLine("Nenhuma reserva ativa para cancelar.");
-                    Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
-                    Console.ReadKey();
-                    return;
-                }
-
-                for (int i = 0; i < reservas.Count; i++)
-                {
-                    var r = reservas[i];
-                    string tipoUsuario = r.Usuario.IsDocente ? "Docente" : "Aluno";
-                    Console.WriteLine($"{i + 1}. ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario}) | Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
-                }
-                Console.Write("\nEscolha a reserva para cancelar (número): ");
-                if (!int.TryParse(Console.ReadLine(), out int reservaIdx) || reservaIdx < 1 || reservaIdx > reservas.Count)
-                {
-                    Console.WriteLine("Reserva inválida! Pressione qualquer tecla para voltar ao menu...");
-                    Console.ReadKey();
-                    return;
-                }
-                Reserva reservaSelecionada = reservas[reservaIdx - 1];
-                gerenciador.CancelarReserva(reservaSelecionada);
-                Console.WriteLine("[SUCESSO] Reserva cancelada com sucesso!");
-                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
-                Console.ReadKey();
+                Console.WriteLine("Opção inválida!");
             }
+            Console.ReadKey();
+        }
 
-            static IPoliticaDeReserva AlterarPolitica(ref IPoliticaDeReserva politica)
+        static IPoliticaDeReserva AlterarPolitica(IPoliticaDeReserva atual)
+        {
+            if (_usuarioLogado?.Nivel != NivelAcesso.Admin)
             {
-                Console.Clear();
-                Console.WriteLine("--- ALTERAR POLÍTICA DE RESERVA ---");
-                Console.WriteLine("1. Primeiro a Chegar");
-                Console.WriteLine("2. Prioridade para Docentes");
-                Console.Write("\nEscolha a nova política (número): ");
-                string opcao = Console.ReadLine();
-
-                string opt = Console.ReadLine();
-                if (opt == "2")
-                {
-                    politica = new PoliticaPrioridadeDocente();
-                    Console.WriteLine("Política alterada para: Prioridade Docentes");
-                }
-                else
-                {
-                    politica = new PoliticaPrimeiroChegar();
+                Console.WriteLine("Apenas Administradores podem alterar a política do sistema!");
+                Console.ReadKey();
+                return atual;
+            }
+            Console.Clear();
+            Console.WriteLine("1. Primeiro a Chegar\n2. Prioridade Docente");
+            Console.Write("\nEscolha a nova política (número): ");
+            string? opt = Console.ReadLine();
+            
+            switch (opt)
+            {
+                case "1":
                     Console.WriteLine("Política alterada para: Primeiro a Chegar");
-                }
-
-                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
-                Console.ReadKey();
-                return politica;
-            }
-
-            static void EmitirRelatorioDiario(GerenciadorDeReservasSala gerenciador)
-            {
-                Console.Clear();
-                Console.WriteLine("--- RELATÓRIO DIÁRIO DE RESERVAS ---");
-                Console.Write("Informe a data para o relatório (DD/MM/AAAA): ");
-                if (!DateTime.TryParse(Console.ReadLine(), out DateTime dataRelatorio))
-                {
-                    Console.WriteLine("Data inválida! Pressione qualquer tecla para voltar ao menu...");
+                    return new PoliticaPrimeiroChegar();
+                case "2":
+                    Console.WriteLine("Política alterada para: Prioridade Docentes");
+                    return new PoliticaPrioridadeDocente();
+                default:
+                    Console.WriteLine("Opção inválida! Mantendo política atual. Pressione qualquer tecla para voltar ao menu...");
                     Console.ReadKey();
-                    return;
-                }
-                var reservasDoDia = gerenciador.GetReservas().Where(r => r.Inicio.Date == dataRelatorio.Date).ToList();
-                Console.WriteLine($"\nReservas para {dataRelatorio:dd/MM/yyyy}:");
-                Console.WriteLine("-----------------------------------");
-                if (reservasDoDia.Count == 0)
+                    return atual;
+            }
+        }
+
+        static void EmitirRelatorioDiario(IGerenciadorDeReservas gerenciador)
+        {
+            Console.Clear();
+            Console.Write("Informe a data para o relatório (DD/MM/AAAA): ");
+            if (DateTime.TryParse(Console.ReadLine(), out DateTime dt))
+            {
+                var doDia = gerenciador.GetReservas().Where(r => r.Inicio.Date == dt.Date).ToList();
+                Console.WriteLine($"Relatório {dt:dd/MM/yyyy} - Total: {doDia.Count}");
+                if (!doDia.Any())
                 {
                     Console.WriteLine("Nenhuma reserva para esta data.");
                 }
                 else
                 {
-                    foreach (var r in reservasDoDia)
-                    {
-                        string tipoUsuario = r.Usuario.IsDocente ? "Docente" : "Aluno";
-                        Console.WriteLine($"ID: {r.Id} | Sala: {r.Sala.Id} | Usuário: {r.Usuario.Nome} ({tipoUsuario})");
-                        Console.WriteLine($"   Horário: {r.Inicio:HH:mm} - {r.Fim:HH:mm}");
-                        Console.WriteLine($"   Detalhes: {r.GetDescricao()}");
-                        Console.WriteLine("-----------------------------------");
-                    }
+                    foreach (var r in doDia) Console.WriteLine($"- {r.Id}: {r.Sala.Id} ({r.Usuario.Nome})");
                 }
-                Console.WriteLine("---------------------------------");
-                Console.WriteLine("Total de Reservas: " + reservasDoDia.Count);
-                Console.WriteLine("\nPressione qualquer tecla para voltar ao menu...");
-                Console.ReadKey();
             }
+            else
+            {
+                Console.WriteLine("Data inválida!");
+            }
+            Console.ReadKey();
         }
     }
 }
